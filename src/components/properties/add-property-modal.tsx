@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { PROPERTY_TYPES, TRANSACTION_TYPES, BHK_OPTIONS, FURNISHED_STATUS, PROPERTY_STATUS, COMMON_AMENITIES } from "@/lib/constants";
+import { supabase } from "@/lib/supabase-client";
+import { Upload, X } from "lucide-react";
 
 interface AddPropertyModalProps {
   open: boolean;
@@ -20,6 +22,7 @@ interface AddPropertyModalProps {
 export function AddPropertyModal({ open, onClose, onSuccess }: AddPropertyModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
   const [form, setForm] = useState({
     name: "", description: "", builderName: "",
     propertyType: "APARTMENT", transactionType: "PURCHASE",
@@ -50,8 +53,25 @@ export function AddPropertyModal({ open, onClose, onSuccess }: AddPropertyModalP
     setLoading(true);
 
     try {
+      let uploadedUrls: string[] = [];
+      if (files.length > 0) {
+        for (const file of files) {
+          const ext = file.name.split('.').pop() || "jpg";
+          const filename = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+          const { error: uploadError } = await supabase.storage
+            .from("property-images")
+            .upload(filename, file);
+          
+          if (uploadError) throw new Error("Image Upload failed: " + uploadError.message);
+          
+          const { data: publicUrlData } = supabase.storage.from("property-images").getPublicUrl(filename);
+          uploadedUrls.push(publicUrlData.publicUrl);
+        }
+      }
+
       const payload = {
         ...form,
+        images: uploadedUrls,
         price: parseFloat(form.price) || 0,
         priceRangeMin: form.priceRangeMin ? parseFloat(form.priceRangeMin) : undefined,
         priceRangeMax: form.priceRangeMax ? parseFloat(form.priceRangeMax) : undefined,
@@ -76,6 +96,7 @@ export function AddPropertyModal({ open, onClose, onSuccess }: AddPropertyModalP
 
       onSuccess();
       // Reset form
+      setFiles([]);
       setForm({
         name: "", description: "", builderName: "",
         propertyType: "APARTMENT", transactionType: "PURCHASE",
@@ -249,6 +270,43 @@ export function AddPropertyModal({ open, onClose, onSuccess }: AddPropertyModalP
             <div className="flex items-center gap-3">
               <Switch checked={form.isFeatured} onCheckedChange={(c) => update("isFeatured", c)} />
               <Label>Featured Property</Label>
+            </div>
+          </div>
+
+          {/* Media */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Media</h4>
+            <div className="space-y-1.5">
+              <Label>Property Photos</Label>
+              <div className="flex flex-col gap-2">
+                <Input 
+                  type="file" 
+                  multiple 
+                  accept="image/*"
+                  className="cursor-pointer"
+                  onChange={(e) => {
+                    if (e.target.files) {
+                      setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+                    }
+                  }}
+                />
+                {files.length > 0 && (
+                  <div className="flex gap-3 mt-2 flex-wrap">
+                    {files.map((file, i) => (
+                      <div key={i} className="relative w-20 h-20 rounded-md overflow-hidden bg-muted border flex items-center justify-center">
+                        <img src={URL.createObjectURL(file)} alt="preview" className="w-full h-full object-cover" />
+                        <button 
+                          type="button" 
+                          onClick={() => setFiles(files.filter((_, index) => index !== i))}
+                          className="absolute top-0 right-0 bg-black/60 p-1 text-white rounded-bl-md hover:bg-destructive transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

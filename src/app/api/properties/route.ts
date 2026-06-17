@@ -102,10 +102,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const { images, ...propertyData } = parsed.data;
+
     const property = await prisma.property.create({
       data: {
-        ...parsed.data,
+        ...propertyData,
         createdById: session.user.id,
+        images: {
+          create: images?.map((url: string, index: number) => ({
+            url,
+            order: index
+          })) || []
+        }
       },
       include: {
         images: true,

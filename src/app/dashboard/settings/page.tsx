@@ -1,14 +1,140 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
-import { Settings, User, Shield, Mail, Calendar } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Settings, Shield, Mail, Lock, Loader2, CheckCircle2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTheme } from "@/components/providers/theme-provider";
-import { formatDate } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+
+function SecuritySettings({ user }: { user: any }) {
+  const isSuperAdmin = user?.role === "SUPER_ADMIN";
+  
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
+  
+  const [form, setForm] = useState({
+    targetUserId: "",
+    oldPassword: "",
+    newPassword: "",
+  });
+
+  const { data: clients } = useQuery({
+    queryKey: ["clients"],
+    queryFn: async () => {
+      const res = await fetch("/api/clients");
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    enabled: isSuperAdmin,
+  });
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.error || "Failed to update password");
+      
+      setSuccess(data.message);
+      setForm({ targetUserId: "", oldPassword: "", newPassword: "" });
+      
+      setTimeout(() => setSuccess(""), 5000);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Lock className="w-5 h-5 text-primary" />
+          Security & Passwords
+        </CardTitle>
+        <CardDescription>Manage your password or reset client passwords.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {success && (
+          <div className="mb-4 p-3 rounded-lg bg-success/10 border border-success/20 text-success text-sm flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4" /> {success}
+          </div>
+        )}
+        {error && (
+          <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handlePasswordChange} className="space-y-4">
+          {isSuperAdmin && (
+            <div className="space-y-1.5">
+              <Label>Account to Update</Label>
+              <Select 
+                value={form.targetUserId} 
+                onValueChange={(v) => setForm({ ...form, targetUserId: v === "self" ? "" : v, oldPassword: "" })}
+              >
+                <SelectTrigger><SelectValue placeholder="My Account (Self)" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="self">My Account (Self)</SelectItem>
+                  {clients?.map((c: any) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name} ({c.email})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {!form.targetUserId && (
+            <div className="space-y-1.5">
+              <Label>Current Password</Label>
+              <Input 
+                type="password" 
+                required 
+                value={form.oldPassword} 
+                onChange={(e) => setForm({ ...form, oldPassword: e.target.value })} 
+              />
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <Label>New Password</Label>
+            <Input 
+              type="password" 
+              required 
+              minLength={6}
+              value={form.newPassword} 
+              onChange={(e) => setForm({ ...form, newPassword: e.target.value })} 
+            />
+          </div>
+
+          <Button type="submit" disabled={loading} className="w-full sm:w-auto">
+            {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+            Update Password
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function SettingsPage() {
   const { data: session } = useSession();
@@ -51,8 +177,13 @@ export default function SettingsPage() {
         </Card>
       </motion.div>
 
-      {/* Appearance */}
+      {/* Security */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+        {user && <SecuritySettings user={user} />}
+      </motion.div>
+
+      {/* Appearance */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
         <Card>
           <CardHeader><CardTitle className="text-lg">Appearance</CardTitle></CardHeader>
           <CardContent>
@@ -70,7 +201,7 @@ export default function SettingsPage() {
       </motion.div>
 
       {/* App Info */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
         <Card>
           <CardHeader><CardTitle className="text-lg">About</CardTitle></CardHeader>
           <CardContent className="space-y-2">
@@ -81,10 +212,6 @@ export default function SettingsPage() {
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Version</span>
               <span className="font-medium">1.0.0</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Framework</span>
-              <span className="font-medium">Next.js 15</span>
             </div>
           </CardContent>
         </Card>

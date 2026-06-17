@@ -36,6 +36,7 @@ export const createPropertySchema = z.object({
   reraNumber: z.string().optional(),
   brochureUrl: z.string().optional(),
   isFeatured: z.boolean().optional().default(false),
+  images: z.array(z.string()).optional().default([]),
 });
 
 export const updatePropertySchema = createPropertySchema.partial();
