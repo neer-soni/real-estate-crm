@@ -1,0 +1,301 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── USER & AUTH ────────────────────────────────────────────
+
+enum Role {
+  SUPER_ADMIN
+  CLIENT
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String
+  role          Role      @default(CLIENT)
+  avatar        String?
+  phone         String?
+  company       String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  properties    Property[]
+  leadNotes     LeadNote[]
+  assignments   LeadAssignment[]
+  auditLogs     AuditLog[]
+  sessions      Session[]
+  accounts      Account[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── PROPERTY ───────────────────────────────────────────────
+
+enum PropertyType {
+  APARTMENT
+  VILLA
+  PLOT
+  COMMERCIAL
+  OFFICE
+}
+
+enum TransactionType {
+  RENT
+  PURCHASE
+}
+
+enum BHK {
+  ONE_BHK
+  TWO_BHK
+  THREE_BHK
+  FOUR_BHK
+  FIVE_PLUS_BHK
+}
+
+enum FurnishedStatus {
+  UNFURNISHED
+  SEMI_FURNISHED
+  FULLY_FURNISHED
+}
+
+enum PropertyStatus {
+  READY_TO_MOVE
+  UNDER_CONSTRUCTION
+  POSSESSION_3_MONTHS
+  POSSESSION_6_MONTHS
+  POSSESSION_1_YEAR
+  POSSESSION_2_YEARS
+}
+
+enum Availability {
+  ACTIVE
+  DISABLED
+  SOLD
+}
+
+model Property {
+  id              String          @id @default(cuid())
+  name            String
+  description     String?         @db.Text
+  builderName     String?
+  propertyType    PropertyType
+  transactionType TransactionType
+  price           Float
+  priceRangeMin   Float?
+  priceRangeMax   Float?
+  area            Float?
+  bhk             BHK
+  locality        String
+  city            String
+  state           String
+  pinCode         String?
+  googleMapsUrl   String?
+  amenities       String[]
+  floorNumber     Int?
+  totalFloors     Int?
+  parking         String?
+  furnishedStatus FurnishedStatus?
+  propertyStatus  PropertyStatus  @default(READY_TO_MOVE)
+  availability    Availability    @default(ACTIVE)
+  virtualTourLink String?
+  reraNumber      String?
+  brochureUrl     String?
+  isFeatured      Boolean         @default(false)
+
+  // Relations
+  createdById String
+  createdBy   User            @relation(fields: [createdById], references: [id])
+  images      PropertyImage[]
+  leads       Lead[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([city])
+  @@index([locality])
+  @@index([propertyType])
+  @@index([availability])
+  @@index([transactionType])
+  @@index([price])
+}
+
+model PropertyImage {
+  id         String   @id @default(cuid())
+  url        String
+  publicId   String?
+  alt        String?
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+}
+
+// ─── LEAD ───────────────────────────────────────────────────
+
+enum LeadSource {
+  AI_AGENT
+  WEBSITE
+  REFERRAL
+  SOCIAL_MEDIA
+  WALK_IN
+  PHONE
+  OTHER
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  MEETING_SCHEDULED
+  SITE_VISIT
+  NEGOTIATION
+  CLOSED_WON
+  CLOSED_LOST
+}
+
+enum LeadClassification {
+  COLD
+  WARM
+  HOT
+}
+
+enum UrgencyLevel {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Lead {
+  id                    String              @id @default(cuid())
+  name                  String
+  phone                 String?
+  email                 String?
+  whatsapp              String?
+  source                LeadSource          @default(AI_AGENT)
+  status                LeadStatus          @default(NEW)
+  score                 Int                 @default(0)
+  classification        LeadClassification  @default(COLD)
+
+  // Property requirements
+  budget                Float?
+  budgetMin             Float?
+  budgetMax             Float?
+  transactionType       TransactionType?
+  preferredLocality     String?
+  preferredCity         String?
+  preferredBHK          BHK?
+  preferredPropertyType PropertyType?
+  readyToMoveRequired   Boolean?
+  possessionTimeline    String?
+  minArea               Float?
+  maxArea               Float?
+  amenitiesRequired     String[]
+  investmentPurpose     Boolean             @default(false)
+  endUsePurpose         Boolean             @default(true)
+  urgencyLevel          UrgencyLevel?
+  moveInDate            DateTime?
+  additionalNotes       String?             @db.Text
+
+  // AI / Scoring insights
+  purchaseIntent        String?
+  buyingTimeline        String?
+  followUpPriority      String?
+  closingProbability    Float?
+  scoringInsights       String?             @db.Text
+
+  // Relations
+  propertyId            String?
+  property              Property?           @relation(fields: [propertyId], references: [id])
+  notes                 LeadNote[]
+  assignments           LeadAssignment[]
+  conversationHistory   String?             @db.Text
+  shareToken            String?             @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([classification])
+  @@index([score])
+  @@index([preferredCity])
+}
+
+model LeadNote {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model LeadAssignment {
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([leadId, userId])
+}
+
+// ─── AUDIT ──────────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  entity    String
+  entityId  String
+  details   String?  @db.Text
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([userId])
+}
