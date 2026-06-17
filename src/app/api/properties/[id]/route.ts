@@ -61,10 +61,11 @@ export async function PUT(
         { status: 400 }
       );
     }
+    const { images, ...updateData } = parsed.data;
 
     const property = await prisma.property.update({
       where: { id },
-      data: parsed.data,
+      data: updateData,
       include: {
         images: true,
         createdBy: { select: { name: true, email: true } },
