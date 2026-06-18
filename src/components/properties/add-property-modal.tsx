@@ -109,6 +109,12 @@ export function AddPropertyModal({ open, onClose, onSuccess }: AddPropertyModalP
 
       if (!res.ok) {
         const data = await res.json();
+        if (data.details?.fieldErrors) {
+          const fieldErrors = Object.entries(data.details.fieldErrors)
+            .map(([field, msgs]: [string, any]) => `${field}: ${msgs.join(", ")}`)
+            .join("; ");
+          throw new Error(fieldErrors || data.error);
+        }
         throw new Error(data.error || "Failed to create property");
       }
 
