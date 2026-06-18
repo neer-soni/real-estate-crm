@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { UserCog, Plus, Loader2, Shield, User, Ban, CheckCircle, MoreHorizontal } from "lucide-react";
+import { UserCog, Plus, Loader2, Shield, User, Ban, CheckCircle, MoreHorizontal, Building2, Users } from "lucide-react";
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -156,16 +157,33 @@ export default function ClientsPage() {
                       <p className="text-sm text-muted-foreground">🏢 {client.company}</p>
                     )}
                     <div className="flex items-center justify-between pt-2 border-t">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <Badge variant={client.isActive ? "success" : "secondary"} className="text-[10px]">
                           {client.isActive ? "Active" : "Inactive"}
                         </Badge>
                         <Badge variant="outline" className="text-[10px]">
-                          {client._count?.assignments || 0} leads assigned
+                          {client._count?.properties || 0} properties
+                        </Badge>
+                        <Badge variant="outline" className="text-[10px]">
+                          {client._count?.assignments || 0} leads
                         </Badge>
                       </div>
                       <span className="text-[11px] text-muted-foreground">{formatDate(client.createdAt)}</span>
                     </div>
+                    {client.role === "CLIENT" && (
+                      <div className="flex gap-2 pt-3">
+                        <Link href={`/dashboard/properties?clientId=${client.id}`} className="flex-1">
+                          <Button variant="outline" size="sm" className="w-full text-xs gap-1">
+                            <Building2 className="w-3.5 h-3.5" /> Properties
+                          </Button>
+                        </Link>
+                        <Link href={`/dashboard/leads?assignedTo=${client.id}`} className="flex-1">
+                          <Button variant="outline" size="sm" className="w-full text-xs gap-1">
+                            <Users className="w-3.5 h-3.5" /> Leads
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
         isActive: true,
         createdAt: true,
         _count: {
-          select: { assignments: true },
+          select: { assignments: true, properties: true },
         },
       },
       orderBy: { createdAt: "desc" },

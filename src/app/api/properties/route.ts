@@ -26,12 +26,16 @@ export async function GET(req: NextRequest) {
     const priceMin = searchParams.get("priceMin") || "";
     const priceMax = searchParams.get("priceMax") || "";
     const sortBy = searchParams.get("sortBy") || "newest";
+    const createdById = searchParams.get("createdById") || "";
 
     const where: any = {};
+    const userRole = (session.user as any).role;
 
     // Clients can only see their own properties
-    if ((session.user as any).role !== "SUPER_ADMIN") {
+    if (userRole !== "SUPER_ADMIN") {
       where.createdById = session.user.id;
+    } else if (createdById) {
+      where.createdById = createdById;
     }
 
     if (search) {

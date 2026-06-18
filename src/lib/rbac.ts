@@ -50,7 +50,10 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "data.export",
   ],
   CLIENT: [
+    "properties.view",
+    "properties.create",
     "leads.view",
+    "leads.edit",
     "leads.search",
     "leads.export",
   ],
@@ -88,7 +91,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Properties",
     href: "/dashboard/properties",
     icon: "Building2",
-    adminOnly: true,
+    permission: "properties.view",
   },
   {
     label: "Leads",

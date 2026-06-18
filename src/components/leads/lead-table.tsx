@@ -11,12 +11,13 @@ import { LEAD_STATUSES } from "@/lib/constants";
 interface LeadTableProps {
   leads: any[];
   isAdmin: boolean;
+  canUpdateStatus?: boolean;
   onStatusChange: (id: string, status: string) => void;
   onDelete: (id: string) => void;
   onAssign: (id: string) => void;
 }
 
-export function LeadTable({ leads, isAdmin, onStatusChange, onDelete, onAssign }: LeadTableProps) {
+export function LeadTable({ leads, isAdmin, canUpdateStatus = false, onStatusChange, onDelete, onAssign }: LeadTableProps) {
   const classVariant = (c: string) => {
     if (c === "HOT") return "hot" as const;
     if (c === "WARM") return "warm" as const;
@@ -88,29 +89,31 @@ export function LeadTable({ leads, isAdmin, onStatusChange, onDelete, onAssign }
                           <DropdownMenuItem onClick={() => onAssign(lead.id)}>
                             <UserPlus className="w-4 h-4 mr-2" /> Assign to Client
                           </DropdownMenuItem>
-                          <DropdownMenuSub>
-                            <DropdownMenuSubTrigger>
-                              <ArrowRightLeft className="w-4 h-4 mr-2" /> Change Status
-                            </DropdownMenuSubTrigger>
-                            <DropdownMenuSubContent>
-                              {LEAD_STATUSES.map((s) => (
-                                <DropdownMenuItem
-                                  key={s.value}
-                                  onClick={() => onStatusChange(lead.id, s.value)}
-                                  disabled={lead.status === s.value}
-                                >
-                                  {s.label}
-                                </DropdownMenuItem>
-                              ))}
-                            </DropdownMenuSubContent>
-                          </DropdownMenuSub>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => onDelete(lead.id)} className="text-destructive focus:text-destructive">
                             <Trash2 className="w-4 h-4 mr-2" /> Delete
                           </DropdownMenuItem>
                         </>
                       )}
-                      {!isAdmin && (
+                      {(isAdmin || canUpdateStatus) && (
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger>
+                            <ArrowRightLeft className="w-4 h-4 mr-2" /> Change Status
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent>
+                            {LEAD_STATUSES.map((s) => (
+                              <DropdownMenuItem
+                                key={s.value}
+                                onClick={() => onStatusChange(lead.id, s.value)}
+                                disabled={lead.status === s.value}
+                              >
+                                {s.label}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                      )}
+                      {!isAdmin && !canUpdateStatus && (
                         <DropdownMenuItem disabled>
                           <Eye className="w-4 h-4 mr-2" /> View Only
                         </DropdownMenuItem>

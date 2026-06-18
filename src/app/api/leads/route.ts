@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
     const source = searchParams.get("source") || "";
     const city = searchParams.get("city") || "";
     const sortBy = searchParams.get("sortBy") || "newest";
+    const assignedTo = searchParams.get("assignedTo") || "";
 
     const userRole = (session.user as any).role;
     const where: any = {};
@@ -28,6 +29,10 @@ export async function GET(req: NextRequest) {
     if (userRole === "CLIENT") {
       where.assignments = {
         some: { userId: session.user.id },
+      };
+    } else if (assignedTo) {
+      where.assignments = {
+        some: { userId: assignedTo },
       };
     }
 

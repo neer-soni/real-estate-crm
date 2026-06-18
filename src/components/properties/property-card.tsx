@@ -11,12 +11,13 @@ import { formatPrice, formatBHK, formatPropertyType, formatDate } from "@/lib/ut
 
 interface PropertyCardProps {
   property: any;
+  isAdmin?: boolean;
   onStatusChange: (availability: string) => void;
   onFeatureToggle: () => void;
   onDelete: () => void;
 }
 
-export function PropertyCard({ property, onStatusChange, onFeatureToggle, onDelete }: PropertyCardProps) {
+export function PropertyCard({ property, isAdmin = true, onStatusChange, onFeatureToggle, onDelete }: PropertyCardProps) {
   const mainImage = property.images?.[0]?.url || null;
 
   const availabilityVariant = (a: string) => {
@@ -101,6 +102,7 @@ export function PropertyCard({ property, onStatusChange, onFeatureToggle, onDele
             <Link href={`/dashboard/properties/${property.id}`}>
               <Button variant="ghost" size="xs" className="h-7 px-2"><Eye className="w-3.5 h-3.5" /></Button>
             </Link>
+            {isAdmin && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="xs" className="h-7 px-1.5"><MoreVertical className="w-3.5 h-3.5" /></Button>
@@ -134,6 +136,7 @@ export function PropertyCard({ property, onStatusChange, onFeatureToggle, onDele
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            )}
           </div>
         </div>
       </CardContent>

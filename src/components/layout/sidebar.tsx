@@ -36,7 +36,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { label: "Analytics", href: "/dashboard", icon: "BarChart3", adminOnly: true },
-  { label: "Properties", href: "/dashboard/properties", icon: "Building2", adminOnly: true },
+  { label: "Properties", href: "/dashboard/properties", icon: "Building2" },
   { label: "Leads", href: "/dashboard/leads", icon: "Users" },
   { label: "Clients", href: "/dashboard/clients", icon: "UserCog", adminOnly: true },
   { label: "Settings", href: "/dashboard/settings", icon: "Settings" },

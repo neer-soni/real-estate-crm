@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Users, Plus, Search, Loader2, X, Download, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { LEAD_STATUSES } from "@/lib/constants";
 
 export default function LeadsPage() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const isAdmin = (session?.user as any)?.role === "SUPER_ADMIN";
 
@@ -26,9 +28,25 @@ export default function LeadsPage() {
   const [page, setPage] = useState(1);
   const [showAddModal, setShowAddModal] = useState(false);
   const [assignLeadId, setAssignLeadId] = useState<string | null>(null);
+  const [clientFilter, setClientFilter] = useState("");
+
+  useEffect(() => {
+    const assignedTo = searchParams.get("assignedTo");
+    if (assignedTo && isAdmin) setClientFilter(assignedTo);
+  }, [searchParams, isAdmin]);
+
+  const { data: clients } = useQuery({
+    queryKey: ["clients"],
+    queryFn: async () => {
+      const res = await fetch("/api/clients?role=CLIENT");
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: isAdmin,
+  });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["leads", page, search, statusFilter, classFilter, sortBy],
+    queryKey: ["leads", page, search, statusFilter, classFilter, sortBy, clientFilter],
     queryFn: async () => {
       const params = new URLSearchParams();
       params.set("page", page.toString());
@@ -37,6 +55,7 @@ export default function LeadsPage() {
       if (search) params.set("search", search);
       if (statusFilter) params.set("status", statusFilter);
       if (classFilter) params.set("classification", classFilter);
+      if (isAdmin && clientFilter) params.set("assignedTo", clientFilter);
       const res = await fetch(`/api/leads?${params}`);
       if (!res.ok) throw new Error("Failed to fetch leads");
       return res.json();
@@ -108,6 +127,18 @@ export default function LeadsPage() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {isAdmin && (
+            <Select value={clientFilter} onValueChange={(v) => { setClientFilter(v === "all" ? "" : v); setPage(1); }}>
+              <SelectTrigger className="w-[180px]"><SelectValue placeholder="All Clients" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Clients</SelectItem>
+                {(clients || []).map((client: any) => (
+                  <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
           <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v === "all" ? "" : v); setPage(1); }}>
             <SelectTrigger className="w-[150px]"><SelectValue placeholder="All Status" /></SelectTrigger>
             <SelectContent>
@@ -173,6 +204,7 @@ export default function LeadsPage() {
         <LeadTable
           leads={leads}
           isAdmin={isAdmin}
+          canUpdateStatus={!isAdmin}
           onStatusChange={(id, status) => statusMutation.mutate({ id, status })}
           onDelete={(id) => { if (confirm("Delete this lead?")) deleteMutation.mutate(id); }}
           onAssign={(id) => setAssignLeadId(id)}

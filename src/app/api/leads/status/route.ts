@@ -6,15 +6,28 @@ import { auth } from "@/lib/auth";
 export async function PATCH(req: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user || (session.user as any).role !== "SUPER_ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const userRole = (session.user as any).role;
     const { id, status } = await req.json();
     const validStatuses = ["NEW", "CONTACTED", "MEETING_SCHEDULED", "SITE_VISIT", "NEGOTIATION", "CLOSED_WON", "CLOSED_LOST"];
 
     if (!id || !validStatuses.includes(status)) {
       return NextResponse.json({ error: "Invalid id or status" }, { status: 400 });
+    }
+
+    // Clients can only update status on leads assigned to them
+    if (userRole === "CLIENT") {
+      const assignment = await prisma.leadAssignment.findFirst({
+        where: { leadId: id, userId: session.user.id },
+      });
+      if (!assignment) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    } else if (userRole !== "SUPER_ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const lead = await prisma.lead.update({

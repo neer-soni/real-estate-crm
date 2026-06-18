@@ -33,7 +33,6 @@ export default auth((req) => {
   // RBAC: Block clients from admin-only routes
   if (isLoggedIn && userRole === "CLIENT") {
     const adminOnlyPaths = [
-      "/dashboard/properties",
       "/dashboard/clients",
       "/dashboard/analytics",
     ];

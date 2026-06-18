@@ -10,12 +10,13 @@ import { formatPrice, formatBHK, formatPropertyType, formatDate } from "@/lib/ut
 
 interface PropertyTableProps {
   properties: any[];
+  isAdmin?: boolean;
   onStatusChange: (id: string, availability: string) => void;
   onFeatureToggle: (id: string, isFeatured: boolean) => void;
   onDelete: (id: string) => void;
 }
 
-export function PropertyTable({ properties, onStatusChange, onFeatureToggle, onDelete }: PropertyTableProps) {
+export function PropertyTable({ properties, isAdmin = true, onStatusChange, onFeatureToggle, onDelete }: PropertyTableProps) {
   const availabilityVariant = (a: string) => {
     if (a === "ACTIVE") return "success" as const;
     if (a === "SOLD") return "hot" as const;
@@ -34,6 +35,9 @@ export function PropertyTable({ properties, onStatusChange, onFeatureToggle, onD
               <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Location</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">BHK</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
+              {isAdmin && (
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Owner</th>
+              )}
               <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Date</th>
               <th className="text-right px-4 py-3 font-medium text-muted-foreground">Actions</th>
             </tr>
@@ -77,12 +81,18 @@ export function PropertyTable({ properties, onStatusChange, onFeatureToggle, onD
                 <td className="px-4 py-3">
                   <Badge variant={availabilityVariant(property.availability)}>{property.availability}</Badge>
                 </td>
+                {isAdmin && (
+                  <td className="px-4 py-3 hidden lg:table-cell text-muted-foreground text-xs">
+                    {property.createdBy?.name || "—"}
+                  </td>
+                )}
                 <td className="px-4 py-3 hidden lg:table-cell text-muted-foreground text-xs">{formatDate(property.createdAt)}</td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex items-center justify-end gap-1">
                     <Link href={`/dashboard/properties/${property.id}`}>
                       <Button variant="ghost" size="xs"><Eye className="w-4 h-4" /></Button>
                     </Link>
+                    {isAdmin && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="xs"><MoreHorizontal className="w-4 h-4" /></Button>
@@ -111,6 +121,7 @@ export function PropertyTable({ properties, onStatusChange, onFeatureToggle, onD
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
+                    )}
                   </div>
                 </td>
               </tr>

@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Search, Grid3X3, List, SlidersHorizontal, Building2, Loader2, X
@@ -19,6 +21,9 @@ import {
 } from "@/components/ui/select";
 
 export default function PropertiesPage() {
+  const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const isAdmin = (session?.user as any)?.role === "SUPER_ADMIN";
   const queryClient = useQueryClient();
   const [view, setView] = useState<"grid" | "table">("grid");
   const [search, setSearch] = useState("");
@@ -27,6 +32,22 @@ export default function PropertiesPage() {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [sortBy, setSortBy] = useState("newest");
+  const [clientFilter, setClientFilter] = useState("");
+
+  useEffect(() => {
+    const clientId = searchParams.get("clientId");
+    if (clientId && isAdmin) setClientFilter(clientId);
+  }, [searchParams, isAdmin]);
+
+  const { data: clients } = useQuery({
+    queryKey: ["clients"],
+    queryFn: async () => {
+      const res = await fetch("/api/clients?role=CLIENT");
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: isAdmin,
+  });
 
   const buildQueryString = useCallback(() => {
     const params = new URLSearchParams();
@@ -34,14 +55,15 @@ export default function PropertiesPage() {
     params.set("limit", "12");
     params.set("sortBy", sortBy);
     if (search) params.set("search", search);
+    if (isAdmin && clientFilter) params.set("createdById", clientFilter);
     Object.entries(filters).forEach(([key, value]) => {
       if (value) params.set(key, value);
     });
     return params.toString();
-  }, [page, sortBy, search, filters]);
+  }, [page, sortBy, search, filters, isAdmin, clientFilter]);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["properties", page, search, sortBy, filters],
+    queryKey: ["properties", page, search, sortBy, filters, clientFilter, isAdmin],
     queryFn: async () => {
       const res = await fetch(`/api/properties?${buildQueryString()}`);
       if (!res.ok) throw new Error("Failed to fetch properties");
@@ -98,7 +120,9 @@ export default function PropertiesPage() {
             Properties
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Manage your real estate inventory ({pagination.total} total)
+            {isAdmin
+              ? `All client properties (${pagination.total} total)`
+              : `Your property listings (${pagination.total} total)`}
           </p>
         </div>
         <Button onClick={() => setShowAddModal(true)} className="shadow-lg shadow-primary/20">
@@ -125,6 +149,20 @@ export default function PropertiesPage() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {isAdmin && (
+            <Select value={clientFilter} onValueChange={(v) => { setClientFilter(v === "all" ? "" : v); setPage(1); }}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="All Clients" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Clients</SelectItem>
+                {(clients || []).map((client: any) => (
+                  <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
           <Select value={sortBy} onValueChange={(v) => { setSortBy(v); setPage(1); }}>
             <SelectTrigger className="w-[160px]">
               <SelectValue placeholder="Sort by" />
@@ -221,6 +259,7 @@ export default function PropertiesPage() {
             >
               <PropertyCard
                 property={property}
+                isAdmin={isAdmin}
                 onStatusChange={(availability) => statusMutation.mutate({ id: property.id, availability })}
                 onFeatureToggle={() => featureMutation.mutate({ id: property.id, isFeatured: !property.isFeatured })}
                 onDelete={() => { if (confirm("Delete this property?")) deleteMutation.mutate(property.id); }}
@@ -231,6 +270,7 @@ export default function PropertiesPage() {
       ) : (
         <PropertyTable
           properties={properties}
+          isAdmin={isAdmin}
           onStatusChange={(id, availability) => statusMutation.mutate({ id, availability })}
           onFeatureToggle={(id, isFeatured) => featureMutation.mutate({ id, isFeatured })}
           onDelete={(id) => { if (confirm("Delete this property?")) deleteMutation.mutate(id); }}
