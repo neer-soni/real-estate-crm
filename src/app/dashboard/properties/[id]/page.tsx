@@ -84,6 +84,26 @@ export default function PropertyDetailPage() {
         </div>
       )}
 
+      {/* Video Gallery */}
+      {property.videos && property.videos.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold">Videos</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {property.videos.map((vid: any) => (
+              <video
+                key={vid.id}
+                controls
+                className="w-full rounded-xl border bg-black"
+                preload="metadata"
+              >
+                <source src={vid.url} />
+                Your browser does not support the video tag.
+              </video>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Details */}
         <div className="lg:col-span-2 space-y-6">

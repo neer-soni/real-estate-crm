@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Video } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ export function AddPropertyModal({ open, onClose, onSuccess }: AddPropertyModalP
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [files, setFiles] = useState<File[]>([]);
+  const [videoFiles, setVideoFiles] = useState<File[]>([]);
   const [form, setForm] = useState({
     name: "", description: "", builderName: "",
     propertyType: "APARTMENT", transactionType: "PURCHASE",
@@ -69,9 +70,26 @@ export function AddPropertyModal({ open, onClose, onSuccess }: AddPropertyModalP
         }
       }
 
+      let uploadedVideoUrls: string[] = [];
+      if (videoFiles.length > 0) {
+        for (const file of videoFiles) {
+          const ext = file.name.split('.').pop() || "mp4";
+          const filename = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+          const { error: uploadError } = await supabase.storage
+            .from("property-videos")
+            .upload(filename, file);
+          
+          if (uploadError) throw new Error("Video Upload failed: " + uploadError.message);
+          
+          const { data: publicUrlData } = supabase.storage.from("property-videos").getPublicUrl(filename);
+          uploadedVideoUrls.push(publicUrlData.publicUrl);
+        }
+      }
+
       const payload = {
         ...form,
         images: uploadedUrls,
+        videos: uploadedVideoUrls,
         price: parseFloat(form.price) || 0,
         priceRangeMin: form.priceRangeMin ? parseFloat(form.priceRangeMin) : undefined,
         priceRangeMax: form.priceRangeMax ? parseFloat(form.priceRangeMax) : undefined,
@@ -97,6 +115,7 @@ export function AddPropertyModal({ open, onClose, onSuccess }: AddPropertyModalP
       onSuccess();
       // Reset form
       setFiles([]);
+      setVideoFiles([]);
       setForm({
         name: "", description: "", builderName: "",
         propertyType: "APARTMENT", transactionType: "PURCHASE",
@@ -299,6 +318,39 @@ export function AddPropertyModal({ open, onClose, onSuccess }: AddPropertyModalP
                           type="button" 
                           onClick={() => setFiles(files.filter((_, index) => index !== i))}
                           className="absolute top-0 right-0 bg-black/60 p-1 text-white rounded-bl-md hover:bg-destructive transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="space-y-1.5 mt-4">
+              <Label>Property Videos</Label>
+              <div className="flex flex-col gap-2">
+                <Input 
+                  type="file" 
+                  multiple 
+                  accept="video/*"
+                  className="cursor-pointer"
+                  onChange={(e) => {
+                    if (e.target.files) {
+                      setVideoFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+                    }
+                  }}
+                />
+                {videoFiles.length > 0 && (
+                  <div className="flex gap-3 mt-2 flex-wrap">
+                    {videoFiles.map((file, i) => (
+                      <div key={i} className="relative flex items-center gap-2 px-3 py-2 rounded-md bg-muted border text-sm">
+                        <Video className="w-4 h-4 text-primary flex-shrink-0" />
+                        <span className="truncate max-w-[140px]">{file.name}</span>
+                        <button 
+                          type="button" 
+                          onClick={() => setVideoFiles(videoFiles.filter((_, index) => index !== i))}
+                          className="ml-1 text-muted-foreground hover:text-destructive transition-colors"
                         >
                           <X className="w-3 h-3" />
                         </button>

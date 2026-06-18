@@ -19,6 +19,7 @@ export async function GET(
       where: { id },
       include: {
         images: { orderBy: { order: "asc" } },
+        videos: { orderBy: { order: "asc" } },
         createdBy: { select: { name: true, email: true } },
         leads: {
           include: {
@@ -32,6 +33,11 @@ export async function GET(
 
     if (!property) {
       return NextResponse.json({ error: "Property not found" }, { status: 404 });
+    }
+
+    // Clients can only view their own properties
+    if ((session.user as any).role !== "SUPER_ADMIN" && property.createdById !== session.user.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     return NextResponse.json(property);
@@ -61,7 +67,7 @@ export async function PUT(
         { status: 400 }
       );
     }
-    const { images, ...updateData } = parsed.data;
+    const { images, videos, ...updateData } = parsed.data;
 
     const property = await prisma.property.update({
       where: { id },

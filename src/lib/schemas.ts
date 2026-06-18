@@ -37,6 +37,7 @@ export const createPropertySchema = z.object({
   brochureUrl: z.string().optional(),
   isFeatured: z.boolean().optional().default(false),
   images: z.array(z.string()).optional().default([]),
+  videos: z.array(z.string()).optional().default([]),
 });
 
 export const updatePropertySchema = createPropertySchema.partial();

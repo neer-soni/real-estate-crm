@@ -149,6 +149,7 @@ model Property {
   createdById String
   createdBy   User            @relation(fields: [createdById], references: [id])
   images      PropertyImage[]
+  videos      PropertyVideo[]
   leads       Lead[]
 
   createdAt DateTime @default(now())
@@ -167,6 +168,15 @@ model PropertyImage {
   url        String
   publicId   String?
   alt        String?
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+}
+
+model PropertyVideo {
+  id         String   @id @default(cuid())
+  url        String
   propertyId String
   property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   order      Int      @default(0)

@@ -29,6 +29,11 @@ export async function GET(req: NextRequest) {
 
     const where: any = {};
 
+    // Clients can only see their own properties
+    if ((session.user as any).role !== "SUPER_ADMIN") {
+      where.createdById = session.user.id;
+    }
+
     if (search) {
       where.OR = [
         { name: { contains: search, mode: "insensitive" } },
@@ -63,6 +68,7 @@ export async function GET(req: NextRequest) {
         take: limit,
         include: {
           images: { orderBy: { order: "asc" }, take: 5 },
+          videos: { orderBy: { order: "asc" } },
           createdBy: { select: { name: true, email: true } },
           _count: { select: { leads: true } },
         },
@@ -88,8 +94,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user || (session.user as any).role !== "SUPER_ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await req.json();
@@ -102,7 +108,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { images, ...propertyData } = parsed.data;
+    const { images, videos, ...propertyData } = parsed.data;
 
     const property = await prisma.property.create({
       data: {
@@ -113,10 +119,17 @@ export async function POST(req: NextRequest) {
             url,
             order: index
           })) || []
+        },
+        videos: {
+          create: videos?.map((url: string, index: number) => ({
+            url,
+            order: index
+          })) || []
         }
       },
       include: {
         images: true,
+        videos: true,
         createdBy: { select: { name: true, email: true } },
       },
     });
