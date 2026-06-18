@@ -39,7 +39,8 @@ export async function GET(
     // Check if client can access this lead
     if ((session.user as any).role === "CLIENT") {
       const hasAccess = lead.assignments.some((a) => a.userId === session.user.id);
-      if (!hasAccess) {
+      const isPropertyOwner = lead.property?.createdById === session.user.id;
+      if (!hasAccess && !isPropertyOwner) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
     }
@@ -57,12 +58,32 @@ export async function PUT(
 ) {
   try {
     const session = await auth();
-    if (!session?.user || (session.user as any).role !== "SUPER_ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
     const body = await req.json();
+
+    const leadToUpdate = await prisma.lead.findUnique({
+      where: { id },
+      include: { property: true, assignments: true }
+    });
+
+    if (!leadToUpdate) {
+      return NextResponse.json({ error: "Lead not found" }, { status: 404 });
+    }
+
+    const userRole = (session.user as any).role;
+    if (userRole === "CLIENT") {
+      const hasAccess = leadToUpdate.assignments.some((a) => a.userId === session.user.id);
+      const isPropertyOwner = leadToUpdate.property?.createdById === session.user.id;
+      if (!hasAccess && !isPropertyOwner) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    } else if (userRole !== "SUPER_ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
     const parsed = updateLeadSchema.safeParse(body);
 
     if (!parsed.success) {

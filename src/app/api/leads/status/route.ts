@@ -18,12 +18,20 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Invalid id or status" }, { status: 400 });
     }
 
-    // Clients can only update status on leads assigned to them
+    // Clients can only update status on leads assigned to them or for properties they own
     if (userRole === "CLIENT") {
       const assignment = await prisma.leadAssignment.findFirst({
         where: { leadId: id, userId: session.user.id },
       });
-      if (!assignment) {
+
+      const leadWithProperty = await prisma.lead.findUnique({
+        where: { id },
+        include: { property: true }
+      });
+
+      const isPropertyOwner = leadWithProperty?.property?.createdById === session.user.id;
+
+      if (!assignment && !isPropertyOwner) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
     } else if (userRole !== "SUPER_ADMIN") {
