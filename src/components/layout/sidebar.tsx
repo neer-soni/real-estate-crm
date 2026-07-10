@@ -88,7 +88,7 @@ export function Sidebar({ collapsed, onToggle, role, isMobile }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {filteredItems.map((item) => {
-          const Icon = iconMap[item.icon] || BarChart3;
+          const Icon = iconMap[item.icon] || Users;
           const active = isActive(item.href);
 
           const linkContent = (
