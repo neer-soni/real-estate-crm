@@ -24,7 +24,7 @@ export function Topbar({ onMenuClick, user }: TopbarProps) {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <header className="sticky top-0 z-20 h-16 border-b border-border bg-background/80 backdrop-blur-xl flex items-center justify-between px-4 lg:px-6">
+    <header className="sticky top-0 z-20 h-16 border-b border-border bg-background flex items-center justify-between px-4 lg:px-6">
       {/* Left: Mobile menu + breadcrumb */}
       <div className="flex items-center gap-3">
         <Button
