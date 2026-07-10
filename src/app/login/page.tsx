@@ -32,7 +32,11 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError(result.error);
+        if (result.error === "CredentialsSignin" || result.error === "Configuration") {
+          setError("Invalid email or password");
+        } else {
+          setError(result.error);
+        }
       } else {
         router.push("/dashboard");
         router.refresh();
