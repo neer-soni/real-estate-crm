@@ -5,14 +5,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
-  Building2,
-  BarChart3,
   Users,
   UserCog,
   Settings,
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Zap,
+  BarChart3,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
@@ -21,10 +21,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 
 const iconMap: Record<string, React.ComponentType<any>> = {
   BarChart3,
-  Building2,
   Users,
   UserCog,
   Settings,
+  Zap,
 };
 
 interface NavItem {
@@ -35,9 +35,8 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Analytics", href: "/dashboard", icon: "BarChart3", adminOnly: true },
-  { label: "Properties", href: "/dashboard/properties", icon: "Building2" },
   { label: "Leads", href: "/dashboard/leads", icon: "Users" },
+  { label: "Analytics", href: "/dashboard", icon: "BarChart3", adminOnly: true },
   { label: "Clients", href: "/dashboard/clients", icon: "UserCog", adminOnly: true },
   { label: "Settings", href: "/dashboard/settings", icon: "Settings" },
 ];
@@ -76,7 +75,7 @@ export function Sidebar({ collapsed, onToggle, role, isMobile }: SidebarProps) {
         collapsed && !isMobile ? "justify-center" : "gap-3"
       )}>
         <div className="flex-shrink-0 w-9 h-9 rounded-xl gradient-primary flex items-center justify-center shadow-md shadow-primary/20">
-          <Building2 className="w-5 h-5 text-white" />
+          <Zap className="w-5 h-5 text-white" />
         </div>
         {(!collapsed || isMobile) && (
           <motion.span
@@ -84,7 +83,7 @@ export function Sidebar({ collapsed, onToggle, role, isMobile }: SidebarProps) {
             animate={{ opacity: 1 }}
             className="font-bold text-lg tracking-tight whitespace-nowrap"
           >
-            RealEstate<span className="text-primary">AI</span>
+            Lead<span className="text-primary">IQ</span>
           </motion.span>
         )}
       </div>

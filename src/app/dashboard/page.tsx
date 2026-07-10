@@ -3,15 +3,15 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  Building2, Users, TrendingUp, TrendingDown, Flame, Snowflake, Sun,
-  DollarSign, Home, CheckCircle, XCircle, BarChart3, Loader2,
+  Users, TrendingUp, TrendingDown, Flame, Snowflake, Sun,
+  BarChart3, Loader2, Target, CheckCircle2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatPrice, formatDate, formatLeadStatus } from "@/lib/utils";
+import { formatDate, formatLeadStatus } from "@/lib/utils";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip as ReTooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend,
+  PieChart, Pie, Cell, LineChart, Line, CartesianGrid,
 } from "recharts";
 
 const COLORS = ["#3b82f6", "#22c55e", "#f59e0b", "#a855f7", "#ef4444", "#06b6d4", "#ec4899"];
@@ -57,44 +57,17 @@ function StatsCard({ title, value, subtitle, icon, trend, delay = 0 }: StatsCard
 }
 
 export default function AnalyticsPage() {
-  const [propertyStats, setPropertyStats] = useState<any>(null);
   const [leadStats, setLeadStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [propRes, leadRes] = await Promise.all([
-          fetch("/api/properties?limit=1000"),
-          fetch("/api/leads/analytics"),
-        ]);
-
-        const propData = await propRes.json();
-        const leadData = await leadRes.json();
-
-        // Compute property stats from raw data
-        const properties = propData.properties || [];
-        const total = propData.pagination?.total || properties.length;
-        const active = properties.filter((p: any) => p.availability === "ACTIVE").length;
-        const sold = properties.filter((p: any) => p.availability === "SOLD").length;
-        const rent = properties.filter((p: any) => p.transactionType === "RENT").length;
-        const purchase = properties.filter((p: any) => p.transactionType === "PURCHASE").length;
-
-        // Locality distribution
-        const localityCounts: Record<string, number> = {};
-        properties.forEach((p: any) => {
-          const loc = p.locality || "Other";
-          localityCounts[loc] = (localityCounts[loc] || 0) + 1;
-        });
-        const topLocalities = Object.entries(localityCounts)
-          .sort(([, a], [, b]) => (b as number) - (a as number))
-          .slice(0, 6)
-          .map(([name, count]) => ({ name, count }));
-
-        setPropertyStats({ total, active, sold, rent, purchase, topLocalities });
-        setLeadStats(leadData);
+        const res = await fetch("/api/leads/analytics");
+        const data = await res.json();
+        setLeadStats(data);
       } catch (err) {
-        console.error("Error fetching analytics:", err);
+        console.error("Error fetching lead analytics:", err);
       } finally {
         setLoading(false);
       }
@@ -128,33 +101,24 @@ export default function AnalyticsPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
           <BarChart3 className="w-7 h-7 text-primary" />
-          Analytics Dashboard
+          Lead Analytics
         </h1>
-        <p className="text-muted-foreground text-sm mt-1">Overview of your real estate business performance</p>
-      </div>
-
-      {/* Property Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <StatsCard title="Total Properties" value={propertyStats?.total || 0} icon={<Building2 className="w-5 h-5" />} delay={0} />
-        <StatsCard title="Active Listings" value={propertyStats?.active || 0} subtitle="Currently listed" icon={<Home className="w-5 h-5" />} trend="up" delay={0.05} />
-        <StatsCard title="Sold Properties" value={propertyStats?.sold || 0} icon={<CheckCircle className="w-5 h-5" />} delay={0.1} />
-        <StatsCard title="For Rent" value={propertyStats?.rent || 0} icon={<DollarSign className="w-5 h-5" />} delay={0.15} />
-        <StatsCard title="For Sale" value={propertyStats?.purchase || 0} icon={<TrendingUp className="w-5 h-5" />} delay={0.2} />
+        <p className="text-muted-foreground text-sm mt-1">Overview of your lead qualification performance</p>
       </div>
 
       {/* Lead Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <StatsCard title="Total Leads" value={leadStats?.totalLeads || 0} icon={<Users className="w-5 h-5" />} delay={0.25} />
-        <StatsCard title="Hot Leads" value={leadStats?.hotLeads || 0} subtitle="Score 61-100" icon={<Flame className="w-5 h-5" />} trend="up" delay={0.3} />
-        <StatsCard title="Warm Leads" value={leadStats?.warmLeads || 0} subtitle="Score 31-60" icon={<Sun className="w-5 h-5" />} delay={0.35} />
-        <StatsCard title="Cold Leads" value={leadStats?.coldLeads || 0} subtitle="Score 0-30" icon={<Snowflake className="w-5 h-5" />} delay={0.4} />
-        <StatsCard title="Conversion Rate" value={`${leadStats?.conversionRate || 0}%`} subtitle="Closed Won" icon={<TrendingUp className="w-5 h-5" />} trend="up" delay={0.45} />
+        <StatsCard title="Total Leads" value={leadStats?.totalLeads || 0} icon={<Users className="w-5 h-5" />} delay={0} />
+        <StatsCard title="Hot Leads" value={leadStats?.hotLeads || 0} subtitle="Score 61–100" icon={<Flame className="w-5 h-5" />} trend="up" delay={0.05} />
+        <StatsCard title="Warm Leads" value={leadStats?.warmLeads || 0} subtitle="Score 31–60" icon={<Sun className="w-5 h-5" />} delay={0.1} />
+        <StatsCard title="Cold Leads" value={leadStats?.coldLeads || 0} subtitle="Score 0–30" icon={<Snowflake className="w-5 h-5" />} delay={0.15} />
+        <StatsCard title="Conversion Rate" value={`${leadStats?.conversionRate || 0}%`} subtitle="Closed Won" icon={<TrendingUp className="w-5 h-5" />} trend="up" delay={0.2} />
       </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Lead Status Funnel */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
           <Card>
             <CardHeader><CardTitle className="text-lg">Lead Pipeline</CardTitle></CardHeader>
             <CardContent>
@@ -176,7 +140,7 @@ export default function AnalyticsPage() {
         </motion.div>
 
         {/* Lead Sources Pie */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <Card>
             <CardHeader><CardTitle className="text-lg">Lead Sources</CardTitle></CardHeader>
             <CardContent>
@@ -199,7 +163,7 @@ export default function AnalyticsPage() {
         </motion.div>
 
         {/* Monthly Leads Trend */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="lg:col-span-2">
           <Card>
             <CardHeader><CardTitle className="text-lg">Monthly Lead Growth</CardTitle></CardHeader>
             <CardContent>
@@ -219,32 +183,10 @@ export default function AnalyticsPage() {
             </CardContent>
           </Card>
         </motion.div>
-
-        {/* Top Localities */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65 }}>
-          <Card>
-            <CardHeader><CardTitle className="text-lg">Top Performing Localities</CardTitle></CardHeader>
-            <CardContent>
-              {propertyStats?.topLocalities?.length > 0 ? (
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={propertyStats.topLocalities}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                    <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                    <ReTooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                    <Bar dataKey="count" fill="hsl(var(--chart-2))" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="text-center text-muted-foreground py-10 text-sm">No locality data yet</p>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
       </div>
 
       {/* Recent Leads */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
         <Card>
           <CardHeader><CardTitle className="text-lg">Recent Leads</CardTitle></CardHeader>
           <CardContent>
