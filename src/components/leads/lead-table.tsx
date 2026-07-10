@@ -34,6 +34,8 @@ export function LeadTable({ leads, isAdmin, canUpdateStatus = false, onStatusCha
               <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Phone</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Budget</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Location</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Intent</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden xl:table-cell">Property Choice</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">BHK</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Score</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
@@ -67,6 +69,22 @@ export function LeadTable({ leads, isAdmin, canUpdateStatus = false, onStatusCha
                 </td>
                 <td className="px-4 py-3 hidden lg:table-cell">
                   <span className="text-sm">{lead.preferredLocality || lead.preferredCity || "—"}</span>
+                </td>
+                <td className="px-4 py-3 hidden lg:table-cell">
+                  {lead.transactionType ? (
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                      lead.transactionType === "PURCHASE"
+                        ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                        : "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                    }`}>
+                      {lead.transactionType === "PURCHASE" ? "🏠 Buy" : "🔑 Rent"}
+                    </span>
+                  ) : <span className="text-muted-foreground">—</span>}
+                </td>
+                <td className="px-4 py-3 hidden xl:table-cell">
+                  <span className="text-xs text-muted-foreground max-w-[140px] truncate block">
+                    {lead.preferredPropertyType || "—"}
+                  </span>
                 </td>
                 <td className="px-4 py-3 hidden md:table-cell">{lead.preferredBHK ? formatBHK(lead.preferredBHK) : "—"}</td>
                 <td className="px-4 py-3">

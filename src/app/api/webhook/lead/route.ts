@@ -9,13 +9,13 @@ import { calculateLeadScore } from "@/lib/lead-scoring";
 // {
 //   "userfullName": "John Doe",
 //   "phonenumber": "+91 99887 11111",
-//   "reason": "Buy a flat",
+//   "reason": "Buy",                   <-- "Buy" or "Rent" maps to transactionType
 //   "userpreferredArea": "Bangalore",
 //   "userbudget": "1.5 Cr",
-//   "propertychoice": "2 BHK Apartment",
-//   "clientId": "clxxxxx",          <-- Option A: use client's database ID
-//   "clientEmail": "agent@firm.com" <-- Option B: use client's email (auto-lookup)
-//   "secret": "YOUR_WEBHOOK_SECRET" <-- optional security key
+//   "propertychoice": "2 BHK Apartment", <-- shown as Property Choice in CRM
+//   "clientId": "clxxxxx",             <-- Option A: use client's database ID
+//   "clientEmail": "agent@firm.com"    <-- Option B: use client's email (auto-lookup)
+//   "secret": "YOUR_WEBHOOK_SECRET"    <-- optional security key
 // }
 
 export async function POST(req: NextRequest) {
@@ -47,19 +47,27 @@ export async function POST(req: NextRequest) {
     let resolvedClientId: string | null = null;
 
     if (clientId) {
-      // Option A: direct client ID
       const client = await prisma.user.findUnique({ where: { id: clientId } });
       if (!client) {
         return NextResponse.json({ error: `Client not found with id: ${clientId}` }, { status: 404 });
       }
       resolvedClientId = client.id;
     } else if (clientEmail) {
-      // Option B: lookup by email
       const client = await prisma.user.findUnique({ where: { email: clientEmail } });
       if (!client) {
         return NextResponse.json({ error: `Client not found with email: ${clientEmail}` }, { status: 404 });
       }
       resolvedClientId = client.id;
+    }
+
+    // Map reason → transactionType
+    // Accepts: "Buy", "Purchase", "buy", "rent", "Rent", etc.
+    function parseTransactionType(reasonStr: string | undefined): "PURCHASE" | "RENT" | null {
+      if (!reasonStr) return null;
+      const lower = reasonStr.toLowerCase();
+      if (lower.includes("buy") || lower.includes("purchase") || lower.includes("own")) return "PURCHASE";
+      if (lower.includes("rent") || lower.includes("lease")) return "RENT";
+      return null;
     }
 
     // Parse budget string to number (e.g. "1.5 Cr" => 15000000, "50K" => 50000)
@@ -75,11 +83,17 @@ export async function POST(req: NextRequest) {
     }
 
     const budgetValue = parseBudget(userbudget);
+    const transactionType = parseTransactionType(reason);
 
-    // Build notes
+    // propertychoice: handle array or string
+    const propertyChoiceStr = Array.isArray(propertychoice)
+      ? propertychoice.join(", ")
+      : propertychoice || null;
+
+    // Build additional notes
     const additionalNotes = [
-      reason ? `Task/Reason: ${reason}` : null,
-      propertychoice ? `Property Choice: ${propertychoice}` : null,
+      reason ? `Intent: ${reason}` : null,
+      propertyChoiceStr ? `Property Choice: ${propertyChoiceStr}` : null,
     ]
       .filter(Boolean)
       .join("\n") || null;
@@ -89,8 +103,10 @@ export async function POST(req: NextRequest) {
       name: userfullName,
       phone: phonenumber,
       budget: budgetValue,
+      transactionType,
       preferredLocality: userpreferredArea,
       preferredCity: userpreferredArea,
+      preferredPropertyType: propertyChoiceStr,
       additionalNotes,
     } as any);
 
@@ -106,8 +122,10 @@ export async function POST(req: NextRequest) {
         phone: phonenumber || null,
         source: "AI_AGENT",
         budget: budgetValue,
+        transactionType: transactionType ?? undefined,
         preferredLocality: userpreferredArea || null,
         preferredCity: userpreferredArea || null,
+        preferredPropertyType: propertyChoiceStr || null,
         additionalNotes,
         score: scoring.score,
         classification: scoring.classification,
@@ -118,7 +136,8 @@ export async function POST(req: NextRequest) {
         scoringInsights: scoring.insights,
         conversationHistory: JSON.stringify({
           reason,
-          propertychoice,
+          transactionType,
+          propertychoice: propertyChoiceStr,
           rawBudget: userbudget,
         }),
         shareToken,
@@ -132,7 +151,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Fetch the client name for the response
+    // Fetch client info for response
     let assignedClient = null;
     if (resolvedClientId) {
       assignedClient = await prisma.user.findUnique({
@@ -149,6 +168,8 @@ export async function POST(req: NextRequest) {
           id: lead.id,
           name: lead.name,
           phone: lead.phone,
+          transactionType: lead.transactionType,
+          preferredPropertyType: lead.preferredPropertyType,
           score: lead.score,
           classification: lead.classification,
           status: lead.status,
