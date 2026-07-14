@@ -5,7 +5,7 @@ import { MoreHorizontal, Trash2, UserPlus, Eye, ArrowRightLeft } from "lucide-re
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
-import { formatPrice, formatBHK, formatDate, formatLeadStatus } from "@/lib/utils";
+import { formatPrice, formatDate, formatLeadStatus } from "@/lib/utils";
 import { LEAD_STATUSES } from "@/lib/constants";
 
 interface LeadTableProps {
@@ -35,8 +35,7 @@ export function LeadTable({ leads, isAdmin, canUpdateStatus = false, onStatusCha
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Budget</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Location</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Intent</th>
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden xl:table-cell">Property Choice</th>
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">BHK</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden xl:table-cell">Property Name</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Score</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Date</th>
@@ -82,11 +81,10 @@ export function LeadTable({ leads, isAdmin, canUpdateStatus = false, onStatusCha
                   ) : <span className="text-muted-foreground">—</span>}
                 </td>
                 <td className="px-4 py-3 hidden xl:table-cell">
-                  <span className="text-xs text-muted-foreground max-w-[140px] truncate block">
+                  <span className="text-xs text-muted-foreground max-w-[160px] truncate block" title={lead.preferredPropertyType || ''}>
                     {lead.preferredPropertyType || "—"}
                   </span>
                 </td>
-                <td className="px-4 py-3 hidden md:table-cell">{lead.preferredBHK ? formatBHK(lead.preferredBHK) : "—"}</td>
                 <td className="px-4 py-3">
                   <Badge variant={classVariant(lead.classification)} className="text-xs tabular-nums">
                     {lead.score} · {lead.classification}

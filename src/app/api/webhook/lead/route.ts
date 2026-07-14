@@ -39,9 +39,8 @@ export async function POST(req: NextRequest) {
       clientEmail,
     } = body;
 
-    if (!userfullName) {
-      return NextResponse.json({ error: "userfullName is required" }, { status: 400 });
-    }
+    // All fields are optional - register lead even with minimal info
+    const leadName = userfullName || phonenumber || "Unknown Lead";
 
     // Resolve the client to assign this lead to
     let resolvedClientId: string | null = null;
@@ -93,14 +92,13 @@ export async function POST(req: NextRequest) {
     // Build additional notes
     const additionalNotes = [
       reason ? `Intent: ${reason}` : null,
-      propertyChoiceStr ? `Property Choice: ${propertyChoiceStr}` : null,
     ]
       .filter(Boolean)
       .join("\n") || null;
 
     // Score the lead
     const scoring = calculateLeadScore({
-      name: userfullName,
+      name: leadName,
       phone: phonenumber,
       budget: budgetValue,
       transactionType,
@@ -118,7 +116,7 @@ export async function POST(req: NextRequest) {
     // Create the lead
     const lead = await prisma.lead.create({
       data: {
-        name: userfullName,
+        name: leadName,
         phone: phonenumber || null,
         source: "AI_AGENT",
         budget: budgetValue,
