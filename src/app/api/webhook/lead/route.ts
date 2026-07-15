@@ -18,6 +18,17 @@ import { calculateLeadScore } from "@/lib/lead-scoring";
 //   "secret": "YOUR_WEBHOOK_SECRET"    <-- optional security key
 // }
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+// Handle CORS preflight requests from browser (Botpress Studio)
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: corsHeaders });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -25,7 +36,7 @@ export async function POST(req: NextRequest) {
     // Optional: simple secret key protection
     const webhookSecret = process.env.WEBHOOK_SECRET;
     if (webhookSecret && body.secret !== webhookSecret) {
-      return NextResponse.json({ error: "Unauthorized: invalid secret" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized: invalid secret" }, { status: 401, headers: corsHeaders });
     }
 
     const {
@@ -174,10 +185,10 @@ export async function POST(req: NextRequest) {
         },
         assignedTo: assignedClient || "Unassigned (no clientId or clientEmail provided)",
       },
-      { status: 201 }
+      { status: 201, headers: corsHeaders }
     );
   } catch (error) {
     console.error("Webhook lead error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: corsHeaders });
   }
 }
