@@ -82,7 +82,15 @@ export function LeadTable({ leads, isAdmin, canUpdateStatus = false, onStatusCha
                 </td>
                 <td className="px-4 py-3 hidden xl:table-cell">
                   <span className="text-xs text-muted-foreground max-w-[140px] truncate block">
-                    {lead.preferredPropertyType || "—"}
+                    {(() => {
+                      // For bot leads: extract from additionalNotes "Property Choice: ..."
+                      if (lead.additionalNotes) {
+                        const match = lead.additionalNotes.match(/Property Choice:\s*(.+)/);
+                        if (match) return match[1].trim();
+                      }
+                      // For manual leads: show enum value
+                      return lead.preferredPropertyType || "—";
+                    })()}
                   </span>
                 </td>
                 <td className="px-4 py-3 hidden md:table-cell">{lead.preferredBHK ? formatBHK(lead.preferredBHK) : "—"}</td>

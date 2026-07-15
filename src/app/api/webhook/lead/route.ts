@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
       ? propertychoice.join(", ")
       : propertychoice || null;
 
-    // Build additional notes
+    // Build additional notes (property choice stored as free text here)
     const additionalNotes = [
       reason ? `Intent: ${reason}` : null,
       propertyChoiceStr ? `Property Choice: ${propertyChoiceStr}` : null,
@@ -106,7 +106,6 @@ export async function POST(req: NextRequest) {
       transactionType,
       preferredLocality: userpreferredArea,
       preferredCity: userpreferredArea,
-      preferredPropertyType: propertyChoiceStr,
       additionalNotes,
     } as any);
 
@@ -125,7 +124,8 @@ export async function POST(req: NextRequest) {
         transactionType: transactionType ?? undefined,
         preferredLocality: userpreferredArea || null,
         preferredCity: userpreferredArea || null,
-        preferredPropertyType: propertyChoiceStr || null,
+        // NOTE: preferredPropertyType is a Prisma enum (APARTMENT/VILLA/etc.)
+        // Free-text property name from bot is stored in additionalNotes instead
         additionalNotes,
         score: scoring.score,
         classification: scoring.classification,
