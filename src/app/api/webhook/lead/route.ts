@@ -18,17 +18,6 @@ import { calculateLeadScore } from "@/lib/lead-scoring";
 //   "secret": "YOUR_WEBHOOK_SECRET"    <-- optional security key
 // }
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-};
-
-// Handle CORS preflight requests from browser (Botpress Studio)
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: corsHeaders });
-}
-
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -36,7 +25,7 @@ export async function POST(req: NextRequest) {
     // Optional: simple secret key protection
     const webhookSecret = process.env.WEBHOOK_SECRET;
     if (webhookSecret && body.secret !== webhookSecret) {
-      return NextResponse.json({ error: "Unauthorized: invalid secret" }, { status: 401, headers: corsHeaders });
+      return NextResponse.json({ error: "Unauthorized: invalid secret" }, { status: 401 });
     }
 
     const {
@@ -50,8 +39,9 @@ export async function POST(req: NextRequest) {
       clientEmail,
     } = body;
 
-    // All fields are optional - register lead even with minimal info
-    const leadName = userfullName || phonenumber || "Unknown Lead";
+    if (!userfullName) {
+      return NextResponse.json({ error: "userfullName is required" }, { status: 400 });
+    }
 
     // Resolve the client to assign this lead to
     let resolvedClientId: string | null = null;
@@ -103,13 +93,14 @@ export async function POST(req: NextRequest) {
     // Build additional notes
     const additionalNotes = [
       reason ? `Intent: ${reason}` : null,
+      propertyChoiceStr ? `Property Choice: ${propertyChoiceStr}` : null,
     ]
       .filter(Boolean)
       .join("\n") || null;
 
     // Score the lead
     const scoring = calculateLeadScore({
-      name: leadName,
+      name: userfullName,
       phone: phonenumber,
       budget: budgetValue,
       transactionType,
@@ -127,7 +118,7 @@ export async function POST(req: NextRequest) {
     // Create the lead
     const lead = await prisma.lead.create({
       data: {
-        name: leadName,
+        name: userfullName,
         phone: phonenumber || null,
         source: "AI_AGENT",
         budget: budgetValue,
@@ -185,10 +176,10 @@ export async function POST(req: NextRequest) {
         },
         assignedTo: assignedClient || "Unassigned (no clientId or clientEmail provided)",
       },
-      { status: 201, headers: corsHeaders }
+      { status: 201 }
     );
   } catch (error) {
     console.error("Webhook lead error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: corsHeaders });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
