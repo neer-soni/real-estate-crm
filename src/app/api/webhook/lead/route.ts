@@ -45,19 +45,26 @@ export async function POST(req: NextRequest) {
 
     // Resolve the client to assign this lead to
     let resolvedClientId: string | null = null;
+    let clientWarning: string | null = null;
 
     if (clientId) {
       const client = await prisma.user.findUnique({ where: { id: clientId } });
       if (!client) {
-        return NextResponse.json({ error: `Client not found with id: ${clientId}` }, { status: 404 });
+        // Don't block lead creation — just leave it unassigned and warn
+        clientWarning = `Client not found with id: ${clientId}. Lead created but unassigned.`;
+        console.warn("[webhook/lead]", clientWarning);
+      } else {
+        resolvedClientId = client.id;
       }
-      resolvedClientId = client.id;
     } else if (clientEmail) {
       const client = await prisma.user.findUnique({ where: { email: clientEmail } });
       if (!client) {
-        return NextResponse.json({ error: `Client not found with email: ${clientEmail}` }, { status: 404 });
+        // Don't block lead creation — just leave it unassigned and warn
+        clientWarning = `Client not found with email: ${clientEmail}. Lead created but unassigned.`;
+        console.warn("[webhook/lead]", clientWarning);
+      } else {
+        resolvedClientId = client.id;
       }
-      resolvedClientId = client.id;
     }
 
     // Map reason → transactionType
@@ -175,6 +182,7 @@ export async function POST(req: NextRequest) {
           status: lead.status,
         },
         assignedTo: assignedClient || "Unassigned (no clientId or clientEmail provided)",
+        ...(clientWarning && { warning: clientWarning }),
       },
       { status: 201 }
     );
