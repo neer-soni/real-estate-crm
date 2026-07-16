@@ -39,49 +39,53 @@ export function calculateLeadScore(lead: LeadData): LeadScoringResult {
   let score = 0;
   const reasons: string[] = [];
 
-  // Contact information (max 15 points)
-  if (lead.name) { score += 3; }
-  if (lead.phone) { score += 5; reasons.push("Phone provided"); }
-  if (lead.email) { score += 4; reasons.push("Email provided"); }
-  if (lead.whatsapp) { score += 3; reasons.push("WhatsApp provided"); }
+  // ── Contact information (max 15 pts) ─────────────────────────────────────
+  // Phone is the single most important field — without it follow-up is impossible
+  if (lead.name)      { score += 2; }
+  if (lead.phone)     { score += 10; reasons.push("Phone provided"); }
+  if (lead.email)     { score += 2;  reasons.push("Email provided"); }
+  if (lead.whatsapp)  { score += 1;  reasons.push("WhatsApp provided"); }
 
-  // Budget clarity (max 20 points)
+  // ── Budget clarity (max 30 pts) ───────────────────────────────────────────
+  // Knowing the budget is the strongest purchase signal in real estate
   if (lead.budget) {
-    score += 15;
+    score += 20;
     reasons.push("Clear budget specified");
   } else if (lead.budgetMin && lead.budgetMax) {
-    score += 12;
+    score += 18;                                    // range is nearly as good as exact
     reasons.push("Budget range specified");
   } else if (lead.budgetMin || lead.budgetMax) {
-    score += 7;
+    score += 10;
     reasons.push("Partial budget info");
   }
+  // Knowing Buy vs Rent is fundamental — worth more than before
   if (lead.transactionType) {
-    score += 5;
+    score += 12;
     reasons.push(`Transaction type: ${lead.transactionType}`);
   }
 
-  // Location preference (max 15 points)
+  // ── Location preference (max 20 pts) ──────────────────────────────────────
+  // Specific locality = serious buyer who has done research
   if (lead.preferredLocality) {
-    score += 10;
+    score += 12;
     reasons.push("Specific locality preferred");
   }
   if (lead.preferredCity) {
-    score += 5;
+    score += 8;
     reasons.push("City specified");
   }
 
-  // Property specifications (max 20 points)
+  // ── Property specifications (max 15 pts) ──────────────────────────────────
   if (lead.preferredBHK) {
-    score += 7;
+    score += 4;
     reasons.push("BHK preference set");
   }
   if (lead.preferredPropertyType) {
-    score += 5;
+    score += 4;
     reasons.push("Property type specified");
   }
   if (lead.minArea || lead.maxArea) {
-    score += 5;
+    score += 4;
     reasons.push("Area requirements specified");
   }
   if (lead.amenitiesRequired && lead.amenitiesRequired.length > 0) {
@@ -89,38 +93,38 @@ export function calculateLeadScore(lead: LeadData): LeadScoringResult {
     reasons.push(`${lead.amenitiesRequired.length} amenities required`);
   }
 
-  // Timeline & Urgency (max 20 points)
+  // ── Timeline & Urgency (max 15 pts) ───────────────────────────────────────
   if (lead.urgencyLevel) {
     const urgencyScores: Record<string, number> = {
-      URGENT: 12,
-      HIGH: 9,
-      MEDIUM: 5,
-      LOW: 2,
+      URGENT: 10,
+      HIGH:    8,
+      MEDIUM:  4,
+      LOW:     1,
     };
     const urgencyScore = urgencyScores[lead.urgencyLevel] || 0;
     score += urgencyScore;
     reasons.push(`Urgency: ${lead.urgencyLevel}`);
   }
   if (lead.moveInDate) {
-    score += 5;
+    score += 4;
     reasons.push("Move-in date specified");
   }
   if (lead.possessionTimeline) {
-    score += 3;
+    score += 1;
     reasons.push("Possession timeline provided");
   }
 
-  // Additional signals (max 10 points)
+  // ── Additional signals (max 5 pts) ────────────────────────────────────────
   if (lead.readyToMoveRequired) {
-    score += 5;
+    score += 3;
     reasons.push("Wants ready-to-move");
   }
   if (lead.investmentPurpose) {
-    score += 3;
+    score += 1;
     reasons.push("Investment purpose");
   }
   if (lead.additionalNotes) {
-    score += 2;
+    score += 1;
     reasons.push("Additional notes provided");
   }
 
