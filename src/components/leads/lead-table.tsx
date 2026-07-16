@@ -37,7 +37,7 @@ export function LeadTable({ leads, isAdmin, canUpdateStatus = false, onStatusCha
               <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Intent</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden xl:table-cell">Property Choice</th>
 
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground">Score</th>
+
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Date</th>
               <th className="text-right px-4 py-3 font-medium text-muted-foreground">Actions</th>
@@ -106,11 +106,7 @@ export function LeadTable({ leads, isAdmin, canUpdateStatus = false, onStatusCha
                   </span>
                 </td>
 
-                <td className="px-4 py-3">
-                  <Badge variant={classVariant(lead.classification)} className="text-xs tabular-nums">
-                    {lead.score} · {lead.classification}
-                  </Badge>
-                </td>
+
                 <td className="px-4 py-3">
                   <Badge variant="outline" className="text-xs whitespace-nowrap">{formatLeadStatus(lead.status)}</Badge>
                 </td>
