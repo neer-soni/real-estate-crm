@@ -77,11 +77,13 @@ export async function POST(req: NextRequest) {
       return null;
     }
 
-    // Parse budget string to number (e.g. "1.5 Cr" => 15000000, "50K" => 50000)
-    function parseBudget(budgetStr: string | undefined): number | null {
-      if (!budgetStr) return null;
-      const s = budgetStr.toString().trim().toUpperCase();
-      const num = parseFloat(s.replace(/[^0-9.]/g, ""));
+    // Parse a single budget token (e.g. "20K" => 20000, "1.5Cr" => 15000000)
+    function parseSingleBudget(token: string): number | null {
+      const s = token.trim().toUpperCase();
+      // Extract only the first contiguous number from this token
+      const match = s.match(/([0-9]+(?:\.[0-9]+)?)/)
+      if (!match) return null;
+      const num = parseFloat(match[1]);
       if (isNaN(num)) return null;
       if (s.includes("CR")) return Math.round(num * 10000000);
       if (s.includes("L")) return Math.round(num * 100000);
@@ -89,7 +91,29 @@ export async function POST(req: NextRequest) {
       return Math.round(num);
     }
 
-    const budgetValue = parseBudget(userbudget);
+    // Parse budget string — handles both single values and ranges like "20k-30k"
+    function parseBudgetField(budgetStr: string | undefined): {
+      budget: number | null;
+      budgetMin: number | null;
+      budgetMax: number | null;
+    } {
+      if (!budgetStr) return { budget: null, budgetMin: null, budgetMax: null };
+      const s = budgetStr.toString().trim();
+      // Detect a range: contains a dash that separates two numbers (e.g. "20k-30k", "20K - 30K")
+      const rangeParts = s.split(/\s*-\s*/);
+      if (rangeParts.length === 2) {
+        const min = parseSingleBudget(rangeParts[0]);
+        const max = parseSingleBudget(rangeParts[1]);
+        if (min !== null && max !== null) {
+          return { budget: null, budgetMin: min, budgetMax: max };
+        }
+      }
+      // Single value
+      const single = parseSingleBudget(s);
+      return { budget: single, budgetMin: null, budgetMax: null };
+    }
+
+    const { budget: budgetValue, budgetMin, budgetMax } = parseBudgetField(userbudget);
     const transactionType = parseTransactionType(reason);
 
     // propertychoice: handle array or string
@@ -97,10 +121,11 @@ export async function POST(req: NextRequest) {
       ? propertychoice.join(", ")
       : propertychoice || null;
 
-    // Build additional notes (property choice stored as free text here)
+    // Build additional notes (property choice + raw budget stored as free text)
     const additionalNotes = [
       reason ? `Intent: ${reason}` : null,
       propertyChoiceStr ? `Property Choice: ${propertyChoiceStr}` : null,
+      userbudget ? `Raw Budget: ${userbudget}` : null,
     ]
       .filter(Boolean)
       .join("\n") || null;
@@ -110,6 +135,8 @@ export async function POST(req: NextRequest) {
       name: userfullName,
       phone: phonenumber,
       budget: budgetValue,
+      budgetMin,
+      budgetMax,
       transactionType,
       preferredLocality: userpreferredArea,
       preferredCity: userpreferredArea,
@@ -128,6 +155,8 @@ export async function POST(req: NextRequest) {
         phone: phonenumber || null,
         source: "AI_AGENT",
         budget: budgetValue,
+        budgetMin: budgetMin ?? undefined,
+        budgetMax: budgetMax ?? undefined,
         transactionType: transactionType ?? undefined,
         preferredLocality: userpreferredArea || null,
         preferredCity: userpreferredArea || null,

@@ -61,11 +61,23 @@ export function LeadTable({ leads, isAdmin, canUpdateStatus = false, onStatusCha
                 </td>
                 <td className="px-4 py-3 hidden md:table-cell text-muted-foreground">{lead.phone || "—"}</td>
                 <td className="px-4 py-3">
-                  {lead.budget ? (
-                    <span className="font-semibold text-primary">{formatPrice(lead.budget)}</span>
-                  ) : lead.budgetMin || lead.budgetMax ? (
-                    <span className="text-xs">{lead.budgetMin ? formatPrice(lead.budgetMin) : "—"} - {lead.budgetMax ? formatPrice(lead.budgetMax) : "—"}</span>
-                  ) : <span className="text-muted-foreground">—</span>}
+                  {(() => {
+                    // For bot leads: show the original string exactly as sent by the bot
+                    if (lead.additionalNotes) {
+                      const match = lead.additionalNotes.match(/Raw Budget:\s*(.+)/);
+                      if (match) {
+                        return <span className="font-semibold text-primary">{match[1].trim()}</span>;
+                      }
+                    }
+                    // For manual leads: format the numeric value
+                    if (lead.budget) {
+                      return <span className="font-semibold text-primary">{formatPrice(lead.budget)}</span>;
+                    }
+                    if (lead.budgetMin || lead.budgetMax) {
+                      return <span className="text-xs">{lead.budgetMin ? formatPrice(lead.budgetMin) : "—"} - {lead.budgetMax ? formatPrice(lead.budgetMax) : "—"}</span>;
+                    }
+                    return <span className="text-muted-foreground">—</span>;
+                  })()}
                 </td>
                 <td className="px-4 py-3 hidden lg:table-cell">
                   <span className="text-sm">{lead.preferredLocality || lead.preferredCity || "—"}</span>
